@@ -1,0 +1,187 @@
+# MediaArea OpenWrt Packages
+
+This repository contains a bash script, `update_makefiles.sh`, to automate version updates for the following OpenWrt packages:
+
+- `libmediainfo`
+- `mediainfo`
+- `libzen`
+
+## What the Script Does
+
+The script:
+
+- Updates `PKG_VERSION`
+- Downloads the corresponding upstream source archive
+- Computes the correct `PKG_HASH` (SHA256)
+- Updates each `Makefile` in-place
+- Removes downloaded files afterwards
+
+`mediainfo` and `libmediainfo` share the same version number.  
+`libzen` uses its own independent version.
+
+---
+
+# Requirements
+
+The script requires:
+
+- `bash`
+- `curl`
+- `sha256sum`
+- `awk`
+- `sed`
+- `mktemp`
+
+These are typically available by default on most Linux systems.
+
+---
+
+# Updating Package Versions
+
+Edit the version numbers at the top of `update_makefiles.sh`:
+
+```bash
+MEDIAINFO_VERSION="26.01"
+LIBZEN_VERSION="0.4.41"
+```
+
+Then run:
+
+```
+./update_makefiles.sh
+```
+
+The script will:
+1. Parse each `Makefile`
+2. Construct the correct upstream download URL
+3. Download the source tarball
+4. Compute the SHA256 hash
+5. Delete the downloaded file
+6. Update:
+   * `PKG_VERSION:=`
+   * `PKG_HASH:=`
+
+If the download fails (for example, the version does not exist), the script aborts without partially modifying any files.
+
+---
+
+# Building the Packages with the OpenWrt SDK
+
+The OpenWrt SDK allows packages to be compiled without building a full firmware image.
+
+## 1. Download the Correct SDK
+
+Download the SDK matching:
+* Your OpenWrt release (e.g. `25.12.x`)
+* Your target architecture (e.g. `x86_64`, `ath79`, etc.)
+
+From:
+
+```
+https://downloads.openwrt.org/
+```
+
+Example:
+
+```
+wget https://downloads.openwrt.org/releases/25.12/targets/x86/64/openwrt-sdk-23.05.3-x86-64_gcc-12.3.0_musl.Linux-x86_64.tar.xz
+tar -xf openwrt-sdk-*.tar.xz
+cd openwrt-sdk-*
+```
+
+Ensure you select the SDK that exactly matches the firmware version and target architecture of your device.
+
+## 2. Copy the Packages into the SDK
+
+Copy your package directories into:
+
+```
+package/
+```
+
+For example:
+
+```
+package/libzen/
+package/libmediainfo/
+package/mediainfo/
+```
+
+## 3. Update and Install Feeds
+
+Inside the SDK directory:
+
+```
+./scripts/feeds update -a
+./scripts/feeds install -a
+```
+
+## 4. Select the Packages
+
+Open the configuration menu:
+
+```
+make menuconfig
+```
+
+Navigate to the relevant sections and select:
+* `libzen`
+* `libmediainfo`
+* `mediainfo`
+
+Mark them with `M` (module) or `*` as required. Save and exit.
+
+## 5. Compile the Packages
+
+To compile individual packages:
+
+```
+make package/libzen/compile V=s
+make package/libmediainfo/compile V=s
+make package/mediainfo/compile V=s
+```
+
+Or build everything selected:
+
+```
+make -j$(nproc) V=s
+```
+
+`V=s` enables verbose output, which is useful for diagnosing build failures.
+
+## Output Location
+
+Compiled `.apk` files will be located in:
+
+```
+bin/packages/<architecture>/<feed>/
+```
+
+## Clean Rebuild (If Required)
+
+If you change versions or encounter build issues:
+
+```
+make package/libzen/clean
+make package/libmediainfo/clean
+make package/mediainfo/clean
+```
+
+Then rebuild.
+
+---
+
+# Typical Workflow
+
+1. Update versions in `update_makefiles.sh`
+2. Run `./update_makefiles.sh`
+3. Copy packages into the SDK
+4. Compile with:
+
+```
+make package/<name>/compile V=s
+```
+
+5. Install the resulting `.apk` on the target device
+
+
