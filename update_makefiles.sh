@@ -4,7 +4,7 @@ set -euo pipefail
 # -----------------------------
 # CONFIG (edit these two only)
 # -----------------------------
-MEDIAINFO_VERSION="26.01"   # applies to: mediainfo + libmediainfo
+MEDIAINFO_VERSION="26.05"   # applies to: mediainfo + libmediainfo
 LIBZEN_VERSION="0.4.41"     # applies to: libzen
 
 # -----------------------------
